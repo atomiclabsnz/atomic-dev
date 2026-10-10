@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Open (or re-attach to) an IDE session for a project directory (default: current).
+# Re-attaching keeps whatever config the session started with, so if the atomic-dev config
+# has changed since (or the session predates this check), offer to restart it.
+set -euo pipefail
+if [ -n "${ZELLIJ:-}" ]; then
+  echo "Already inside a Zellij session. Detach first (Alt q)." >&2; exit 1
+fi
+cd "${1:-.}"
+cd "$(pwd -P)"
+export IDE_ROOT="$PWD"   # Yazi's project-root plugin stops here
+# '-' goes last in the set: GNU tr reads '_-\n' as a range
+name=$(basename "$PWD" | tr -c 'A-Za-z0-9_\n-' '-')
+
+# Fingerprint of the repo's config/ and bin/ (this script is symlinked from the repo's bin/)
+repo=$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")/.." && pwd -P)
+fingerprint=""
+if [ -d "$repo/config" ]; then
+  fingerprint=$(find "$repo/config" "$repo/bin" -type f -print0 | LC_ALL=C sort -z | xargs -0 cat | cksum)
+fi
+stamp="${XDG_CACHE_HOME:-$HOME/.cache}/atomic-dev/sessions/$name"
+
+new_session() {
+  if [ -n "$fingerprint" ]; then mkdir -p "$(dirname "$stamp")"; printf '%s\n' "$fingerprint" > "$stamp"; fi
+  exec zellij --session "$name" --new-session-with-layout ide
+}
+
+if ! zellij list-sessions --short 2>/dev/null | grep -qx "$name"; then
+  new_session
+fi
+
+if [ -n "$fingerprint" ] && [ "$(cat "$stamp" 2>/dev/null)" != "$fingerprint" ] && [ -t 0 ]; then
+  echo "Session '$name' was started before the IDE config last changed, so it would still use the old setup."
+  echo "Restarting closes its panes (Helix auto-saves; anything running in its shells stops)."
+  printf '[R]estart with the new config (default) / [a]ttach anyway? '
+  read -r answer || answer=""
+  case "$answer" in
+    a|A) ;;
+    *) zellij delete-session --force "$name" >/dev/null 2>&1 || true
+       new_session ;;
+  esac
+fi
+exec zellij attach "$name"

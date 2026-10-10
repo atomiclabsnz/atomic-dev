@@ -1,0 +1,22 @@
+[language-server.rust-analyzer.config]
+check.command = "clippy"
+cargo.features = "all"
+
+[language-server.basedpyright]
+command = "basedpyright-langserver"
+args = ["--stdio"]
+
+[[language]]
+name = "rust"
+auto-format = true
+
+[[language]]
+name = "python"
+language-servers = ["basedpyright", "ruff"]
+auto-format = true
+formatter = { command = "ruff", args = ["format", "-"] }
+
+[[language]]
+name = "toml"
+auto-format = true
+formatter = { command = "taplo", args = ["fmt", "-"] }

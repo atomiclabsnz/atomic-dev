@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Show the IDE cheat sheet. Pass a word to filter, e.g. `ide-help git`.
+sheet="${XDG_CONFIG_HOME:-$HOME/.config}/ide/cheatsheet.txt"
+if [ -n "${1:-}" ]; then grep -i --color=always -- "$1" "$sheet"; exit; fi
+less -R -S --prompt=" q to close, / to search " "$sheet"

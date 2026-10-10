@@ -1,0 +1,12 @@
+# Keep the sidebar inside the project folder ($IDE_ROOT, set by `ide`).
+# This is a guardrail against wandering off, not a sandbox.
+[mgr]
+prepend_keymap = [
+  { on = "h",       run = "plugin project-root", desc = "Parent folder (stops at project root)" },
+  { on = "<Left>",  run = "plugin project-root", desc = "Parent folder (stops at project root)" },
+  { on = ["g", "h"],       run = "noop", desc = "Disabled: go home" },
+  { on = ["g", "c"],       run = "noop", desc = "Disabled: go to config" },
+  { on = ["g", "d"],       run = "noop", desc = "Disabled: go to downloads" },
+  { on = ["g", "<Space>"], run = "noop", desc = "Disabled: jump to any folder" },
+  { on = "Z",              run = "noop", desc = "Disabled: zoxide jump" },
+]

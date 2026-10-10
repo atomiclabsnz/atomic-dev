@@ -1,0 +1,40 @@
+ TERMINAL IDE CHEAT SHEET              (edit: ~/.config/ide/cheatsheet.txt)
+ ─────────────────────────────────────────────────────────────────────────
+ WINDOW (Zellij — works everywhere)
+   Alt h / Alt l     focus file tree / editor     Alt /   this help (q close)
+   Alt j / Alt k     focus pane below / above     Alt g   lazygit popup
+   Alt 1 / 2 / 3     code / git / shell tab       Alt t   terminal below
+   Alt z             fullscreen pane              Alt f   show/hide popups
+   Alt q             detach (session keeps running; `ide` re-attaches)
+   Alt Q             quit (kill the session)
+   Ctrl-g            unlock Zellij menus (resize, splits, sessions); again to lock
+
+ FILE TREE (Yazi)
+   j / k             down / up                    Enter   open in Helix
+   h / l             parent / enter folder        .       toggle hidden files
+                     (h stops at the project folder)
+   a                 new file (end with / = dir)  r       rename
+   d                 trash                        y / p   copy / paste
+   /                 search in folder             z       jump (fzf)
+
+ EDITOR (Helix)  — press space, g, m, [ or ] and wait: a hint menu appears
+   i / a             insert before / after        Esc     back to normal
+   w / b / e         select word fwd / back       x       select line
+   d / c / y / p     delete / change / yank / put u / U   undo / redo
+   space f           find file                    space /  search in project
+   space b           open buffers                 Tab      next buffer
+   space e           file explorer picker         Ctrl-s   save
+   gd / gr           go to definition / refs      space k  hover docs
+   space a           code actions                 space r  rename symbol
+   space d           diagnostics                  ]d / [d  next / prev error
+   space s           symbols in file              Ctrl-o   jump back
+   ]g / [g           next / prev git change       space g  changed files
+   Ctrl-r            reload after lazygit         :q       quit
+   %  s  ,          select all / select regex / keep primary (multi-cursor)
+
+ GIT (Lazygit)        ? inside lazygit shows every key
+   Tab / 1-5         switch panels                space    stage / unstage
+   c                 commit                       P / p    push / pull
+   Enter             view diff                    e        edit file in Helix
+   b                 branches                     z        undo
+ ─────────────────────────────────────────────────────────────────────────

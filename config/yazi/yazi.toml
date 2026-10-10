@@ -1,0 +1,11 @@
+[mgr]
+ratio = [0, 1, 0]      # sidebar mode: just the current folder, no preview
+show_hidden = true
+sort_dir_first = true
+
+[opener]
+# %s = selected files, already shell-quoted (Yazi 26 removed $@ in opener rules)
+helix = [{ run = "yazi-to-helix %s", desc = "Open in Helix pane", for = "unix" }]
+
+[open]
+prepend_rules = [{ url = "*", use = ["helix", "open"] }]

@@ -1,0 +1,5 @@
+# Variables set in install.sh/lib are used by the sourced steps/*.sh
+disable=SC2034
+# `a && pass || fail` is fine: pass/fail always succeed
+disable=SC2015
+external-sources=true

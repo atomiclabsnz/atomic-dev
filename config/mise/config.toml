@@ -1,0 +1,29 @@
+# Global tool versions for every atomic-dev machine (linked to ~/.config/mise/config.toml).
+# Pinned so all machines match. To upgrade: `mise outdated`, bump here, re-run install.sh.
+[tools]
+# IDE
+helix = "25.07.1"
+zellij = "0.45.1"
+lazygit = "0.66.0"
+# Search / CLI
+ripgrep = "15.2.0"
+fd = "10.5.0"
+fzf = "0.74.4"
+gh = "2.102.0"
+# Python
+uv = "0.12.24"
+ruff = "0.16.10"
+# Node / TypeScript (Node LTS line)
+node = "24.21.0"
+# Language servers referenced by helix/languages.toml and Helix's defaults
+taplo = "0.10.0"
+marksman = "2026-02-08"
+"npm:basedpyright" = "1.40.2"
+"npm:typescript" = "7.0.2"
+"npm:typescript-language-server" = "6.0.1"
+"npm:yaml-language-server" = "1.24.0"
+
+# Yazi's glibc builds need glibc 2.39 (newer than Debian 12), so use the static musl builds on Linux
+[tools."github:sxyazi/yazi"]
+version = "26.9.1"
+platforms = { linux-x64 = { asset_pattern = "yazi-x86_64-unknown-linux-musl.zip" }, linux-arm64 = { asset_pattern = "yazi-aarch64-unknown-linux-musl.zip" } }

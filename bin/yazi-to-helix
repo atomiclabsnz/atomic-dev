@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Called by Yazi's opener (yazi.toml): focus the Helix pane on the right and :open each file there.
+# Failures are logged, since Yazi runs openers silently.
+log="${XDG_CACHE_HOME:-$HOME/.cache}/atomic-dev/yazi-to-helix.log"
+mkdir -p "$(dirname "$log")"
+exec 2>>"$log"
+set -eu
+trap 'echo "$(date "+%F %T") failed (exit $?) args: $*" >&2' ERR
+
+[ $# -gt 0 ] || { echo "$(date "+%F %T") called with no files" >&2; exit 1; }
+
+# Helix: single quotes are literal (no %{} expansion); fall back if the path contains them
+# shellcheck disable=SC2016  # literal backticks are Helix quoting
+quote() {
+  case "$1" in
+    *"'"*) case "$1" in *'"'*) printf '`%s`' "$1" ;; *) printf '"%s"' "$1" ;; esac ;;
+    *) printf "'%s'" "$1" ;;
+  esac
+}
+
+zellij action move-focus right
+for f in "$@"; do
+  zellij action write 27        # Esc -> normal mode
+  sleep 0.05                    # so Helix reads Esc on its own, not as Alt+:
+  zellij action write-chars ":open $(quote "$f")"
+  zellij action write 13        # Enter
+done

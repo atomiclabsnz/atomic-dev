@@ -1,0 +1,28 @@
+// Start locked so Helix gets every key. Ctrl-g unlocks Zellij's own modes.
+default_mode "locked"
+theme "catppuccin-mocha"
+pane_frames true
+show_startup_tips false
+show_release_notes false
+mouse_mode true
+
+keybinds {
+    // Available in every mode, including locked
+    shared {
+        bind "Alt h" { MoveFocusOrTab "Left"; }
+        bind "Alt l" { MoveFocusOrTab "Right"; }
+        bind "Alt j" { MoveFocus "Down"; }
+        bind "Alt k" { MoveFocus "Up"; }
+        bind "Alt 1" { GoToTab 1; }
+        bind "Alt 2" { GoToTab 2; }
+        bind "Alt 3" { GoToTab 3; }
+        bind "Alt f" { ToggleFloatingPanes; }
+        bind "Alt z" { ToggleFocusFullscreen; }
+        bind "Alt t" { NewPane "Down"; }
+        bind "Alt g" { Run "lazygit" { floating true; close_on_exit true; }; }
+        bind "Alt /" { Run "ide-help" { floating true; close_on_exit true; }; }
+        // Detach leaves the session running (re-attach with `ide`); Quit kills it
+        bind "Alt q" { Detach; }
+        bind "Alt Q" { Quit; }
+    }
+}

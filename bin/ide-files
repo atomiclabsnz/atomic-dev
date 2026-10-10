@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# File-tree pane (layouts/ide.kdl). Yazi exits if it starts before Zellij has sized the pane,
+# which happens on Linux when the session is created, so wait for a real size first.
+for _ in $(seq 50); do
+  size=$(stty size 2>/dev/null) || size=""
+  [ -n "$size" ] && [ "$size" != "0 0" ] && break
+  sleep 0.1
+done
+exec yazi "$@"
