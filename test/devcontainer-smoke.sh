@@ -69,7 +69,7 @@ echo "dev container smoke test ($kind, $image)"
 for _ in $(seq 150); do
   container=$(docker ps -q --filter "label=devcontainer.local_folder=$proj" | head -n 1)
   [ -n "$container" ] && break
-  grep -qE 'xx |missing|Can.t reach|needed for' "$tmp/client.log" && break   # ide gave up
+  grep -qE 'xx|missing|Can.t reach|needed for|failed' "$tmp/client.log" && break   # ide gave up
   sleep 2
 done
 [ -n "$container" ] || { fail "dev container did not start"; tail -c 1500 "$tmp/client.log"; exit 1; }

@@ -15,13 +15,14 @@ jobs:
   devcontainer:
     # `ide` in a project with a dev container: IDE runs inside it (needs a real Docker daemon)
     runs-on: ubuntu-latest
+    env:
+      # so the mise shims (devcontainer, node) resolve versions from the repo's pins
+      MISE_GLOBAL_CONFIG_FILE: ${{ github.workspace }}/config/mise/config.toml
     steps:
       - uses: actions/checkout@v4
       - uses: jdx/mise-action@v2
         with:
           install_args: "node npm:@devcontainers/cli"
-        env:
-          MISE_GLOBAL_CONFIG_FILE: ${{ github.workspace }}/config/mise/config.toml
       - name: test/devcontainer-smoke.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
