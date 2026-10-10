@@ -195,8 +195,12 @@ else
   tail -c 3000 "$tmp/client.log" | sed 's/\x1b\[[0-9;?]*[A-Za-z]//g' | tr -s ' ' | tail -c 800
 fi
 key c                                   # ...then c: Claude tab
-sleep 1
-if zellij -s "$session" action dump-screen 2>/dev/null | grep -q 'FAKE-CLAUDE-READY'; then pass "Ctrl-q c shows the claude tab"
+claude_shown=no
+for _ in $(seq 25); do
+  zellij -s "$session" action dump-screen 2>/dev/null | grep -q 'FAKE-CLAUDE-READY' && { claude_shown=yes; break; }
+  sleep 0.2
+done
+if [ "$claude_shown" = yes ]; then pass "Ctrl-q c shows the claude tab"
 else fail "Ctrl-q c did not show Claude"; fi
 
 log_size=$(wc -c < "$tmp/client.log")

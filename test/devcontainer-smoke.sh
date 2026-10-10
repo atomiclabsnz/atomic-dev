@@ -111,7 +111,9 @@ else fail "python3 isn't the container's"; fi
 host_email=$(git config --global user.email 2>/dev/null || true)
 if [ -z "$host_email" ] || [ "$(in_container 'git config --global user.email')" = "$host_email" ]; then
   pass "git identity carried into the container"; else fail "git identity missing in the container"; fi
-if in_container 'test -S /tmp/atomic-ssh-agent.sock'; then pass "SSH agent socket available in the container"
+if [ "$(uname)" != Darwin ] && [ ! -S "${SSH_AUTH_SOCK:-}" ]; then
+  echo "  skip SSH agent check (no agent on this machine)"
+elif in_container 'test -S /tmp/atomic-ssh-agent.sock'; then pass "SSH agent socket available in the container"
 else fail "no SSH agent socket in the container"; fi
 
 key '\033[113;5u'; key d                # Ctrl-q d: detach
