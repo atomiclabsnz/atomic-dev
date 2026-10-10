@@ -20,7 +20,7 @@ set -uo pipefail
 fails=0
 check() { if eval "$2" >/dev/null 2>&1; then echo "  ok   $1"; else echo "  FAIL $1"; fails=$((fails+1)); fi; }
 
-for c in hx zellij yazi lazygit rg fd fzf gh uv ruff node cargo claude; do
+for c in hx zellij yazi lazygit rg fd fzf gh uv ruff node cargo claude devcontainer docker; do
   check "$c runs" "$c --version"
 done
 for pair in python:basedpyright python:ruff rust:rust-analyzer typescript:typescript-language-server \
@@ -32,6 +32,7 @@ check "rc hook added exactly once" "[ \"\$(grep -c '# atomic-dev\$' ~/.bashrc)\"
 check "configs are symlinks into the repo" "[ \"\$(readlink ~/.config/zellij/config.kdl)\" = ~/.atomic-dev/config/zellij/config.kdl ]"
 check "zjstatus installed with permissions pre-granted" "grep -q zjstatus.wasm ~/.cache/zellij/permissions.kdl && [ -f ~/.local/share/atomic-dev/zjstatus.wasm ]"
 check "Claude notification hook configured" "grep -q ide-notify ~/.claude/settings.json"
+check "dev user is in the docker group" "id -nG dev | grep -qw docker"
 check "git identity set" "[ \"\$(git config --global user.email)\" = smoke@example.com ]"
 
 bash ~/.atomic-dev/test/ide-smoke.sh || fails=$((fails+1))

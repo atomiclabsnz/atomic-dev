@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# Run the IDE inside a project's dev container (called by `ide` when the project has one).
+#   ide-devcontainer DIR [--rebuild]
+# Starts the container with the devcontainer CLI, installs atomic-dev inside it from this
+# checkout (mounted read-only), then runs `ide` in there. Tools live in a shared Docker volume,
+# so only the first container on a machine pays for downloading them.
+# shellcheck disable=SC2016  # the single-quoted scripts below run inside the container
+set -euo pipefail
+
+dir=$1; shift
+rebuild=()
+[ "${1:-}" = --rebuild ] && rebuild=(--remove-existing-container)
+
+repo=$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")/.." && pwd -P)
+volume="${ATOMIC_DEVCONTAINER_VOLUME:-atomic-dev-tools}"
+log="${XDG_CACHE_HOME:-$HOME/.cache}/atomic-dev/devcontainer-$(basename "$dir").log"
+mkdir -p "$(dirname "$log")"
+: > "$log"
+
+say() { printf '\033[1;36m==>\033[0m %s\n' "$*"; }
+fail() { printf '\033[1;31mxx\033[0m  %s (log: %s)\n' "$1" "$log" >&2; tail -n 20 "$log" >&2; exit 1; }
+
+command -v docker >/dev/null || { echo "Docker is needed for dev containers (install.sh sets it up on Linux; use OrbStack or Docker Desktop on macOS)." >&2; exit 1; }
+command -v devcontainer >/dev/null || { echo "The devcontainer CLI is missing; re-run install.sh." >&2; exit 1; }
+docker info >/dev/null 2>&1 || { echo "Can't reach Docker. Is it running, and are you in the docker group (log in again after install)?" >&2; exit 1; }
+
+# Pass the SSH agent through for git, if there is one
+# external=true so Compose-based dev containers share the one volume instead of making their own
+docker volume create "$volume" >/dev/null
+mounts=(--mount "type=bind,source=$repo,target=/opt/atomic-dev"
+        --mount "type=volume,source=$volume,target=/opt/atomic-dev-tools,external=true")
+ssh_env=()
+if [ "$(uname)" = Darwin ]; then
+  # Docker Desktop and OrbStack expose the Mac's agent at this path inside the VM
+  mounts+=(--mount "type=bind,source=/run/host-services/ssh-auth.sock,target=/tmp/atomic-ssh-agent.sock")
+  ssh_env=(--remote-env SSH_AUTH_SOCK=/tmp/atomic-ssh-agent.sock)
+elif [ -S "${SSH_AUTH_SOCK:-}" ]; then
+  mounts+=(--mount "type=bind,source=$SSH_AUTH_SOCK,target=/tmp/atomic-ssh-agent.sock")
+  ssh_env=(--remote-env SSH_AUTH_SOCK=/tmp/atomic-ssh-agent.sock)
+fi
+
+say "Starting dev container for $(basename "$dir") (first start builds it, which can take a while)"
+up=$(devcontainer up --workspace-folder "$dir" "${mounts[@]}" ${rebuild[@]+"${rebuild[@]}"} \
+       --log-format json 2>>"$log" | tail -n 1) || fail "devcontainer up failed"
+container=$(sed -n 's/.*"containerId":"\([^"]*\)".*/\1/p' <<<"$up")
+remote_user=$(sed -n 's/.*"remoteUser":"\([^"]*\)".*/\1/p' <<<"$up")
+workspace=$(sed -n 's/.*"remoteWorkspaceFolder":"\([^"]*\)".*/\1/p' <<<"$up")
+[ -n "$container" ] || fail "devcontainer up gave no container id"
+
+# The extra mounts only apply when the container is created. A container made earlier
+# (by VS Code, say) won't have them.
+if ! docker exec "$container" test -d /opt/atomic-dev/config; then
+  echo "This dev container was created without atomic-dev. Recreate it with:  ide --rebuild" >&2
+  exit 1
+fi
+
+# The tools volume starts out root-owned; hand it to the container's user
+uid=$(docker exec -u "${remote_user:-root}" "$container" id -u)
+if [ "$(docker exec "$container" stat -c %u /opt/atomic-dev-tools)" != "$uid" ]; then
+  docker exec -u root "$container" chown -R "$uid" /opt/atomic-dev-tools
+fi
+
+# Identity and Claude login come from the host
+git_name=$(git config --global user.name 2>/dev/null || true)
+git_email=$(git config --global user.email 2>/dev/null || true)
+secrets="${XDG_CONFIG_HOME:-$HOME/.config}/atomic-dev/secrets.env"
+# shellcheck disable=SC1090
+[ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && [ -f "$secrets" ] && . "$secrets"
+env_args=(--remote-env ATOMIC_IN_DEVCONTAINER=1 ${ssh_env[@]+"${ssh_env[@]}"})
+[ -n "$git_name" ] && env_args+=(--remote-env "GIT_NAME=$git_name")
+[ -n "$git_email" ] && env_args+=(--remote-env "GIT_EMAIL=$git_email")
+[ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && env_args+=(--remote-env "CLAUDE_CODE_OAUTH_TOKEN=$CLAUDE_CODE_OAUTH_TOKEN")
+
+# Keep mise tools and Claude Code in the shared volume, then (re)install; this is quick once tools are cached
+say "Setting up the IDE inside the container (first time on this machine downloads the tools)"
+devcontainer exec --container-id "$container" "${env_args[@]}" bash -c '
+  set -e
+  for d in .local/share/mise .local/share/claude; do
+    mkdir -p "/opt/atomic-dev-tools/$d" "$(dirname "$HOME/$d")"
+    [ -e "$HOME/$d" ] || ln -s "/opt/atomic-dev-tools/$d" "$HOME/$d"
+  done
+  bash /opt/atomic-dev/install.sh --container
+' >>"$log" 2>&1 || fail "installing atomic-dev in the container failed"
+
+# Run the IDE in there; detaching (Ctrl-q d) comes back here and leaves the container running
+exec devcontainer exec --container-id "$container" "${env_args[@]}" \
+  bash -c '. /opt/atomic-dev/shell/rc.sh; exec ide "$0"' "${workspace:-/workspaces/$(basename "$dir")}"

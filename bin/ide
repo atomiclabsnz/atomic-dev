@@ -2,12 +2,20 @@
 # Open (or re-attach to) an IDE session for a project directory.
 #   ide [dir]   project in dir (default: current directory)
 #   ide -p      pick from running sessions and ~/src/* (also what plain `ide` does in $HOME)
+# A project with a dev container (.devcontainer/devcontainer.json) gets the IDE inside it:
+#   ide --rebuild [dir]   recreate the dev container first
+#   ide --host [dir]      run on this machine anyway
 # Re-attaching keeps whatever config the session started with, so if the atomic-dev config
 # has changed since (or the session predates this check), offer to restart it.
 set -euo pipefail
 if [ -n "${ZELLIJ:-}" ]; then
   echo "Already inside a Zellij session. Detach first (Ctrl-q d)." >&2; exit 1
 fi
+container_args=() use_container=1
+case "${1:-}" in
+  --rebuild) container_args=(--rebuild); shift ;;
+  --host) use_container=0; shift ;;
+esac
 sessions_dir="${XDG_CACHE_HOME:-$HOME/.cache}/atomic-dev/sessions"
 projects_dir="${IDE_PROJECTS:-$HOME/src}"
 
@@ -41,6 +49,10 @@ if [ "${1:-}" = -p ] || { [ $# -eq 0 ] && [ "$PWD" = "$HOME" ] && [ -t 0 ]; }; t
 fi
 cd "${1:-.}"
 cd "$(pwd -P)"
+if [ "$use_container" = 1 ] && [ -z "${ATOMIC_IN_DEVCONTAINER:-}" ] &&
+   { [ -f .devcontainer/devcontainer.json ] || [ -f .devcontainer.json ]; }; then
+  exec ide-devcontainer "$PWD" ${container_args[@]+"${container_args[@]}"}
+fi
 export IDE_ROOT="$PWD"   # Yazi's project-root plugin stops here
 # '-' goes last in the set: GNU tr reads '_-\n' as a range
 name=$(basename "$PWD" | tr -c 'A-Za-z0-9_\n-' '-')

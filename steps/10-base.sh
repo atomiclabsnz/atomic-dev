@@ -2,8 +2,8 @@
 if [ "$SKIP_BASE" = 0 ] && [ -z "${BASE_DONE:-}" ]; then
   case "$OS" in
     debian)
-      pkgs=(git curl ca-certificates build-essential unzip xz-utils file less procps
-            openssh-client sudo locales bsdutils)
+      pkgs=(git curl ca-certificates unzip xz-utils file less procps openssh-client bsdutils)
+      [ "$IN_CONTAINER" = 1 ] || pkgs+=(build-essential sudo locales)
       missing=()
       for p in "${pkgs[@]}"; do dpkg -s "$p" >/dev/null 2>&1 || missing+=("$p"); done
       if [ ${#missing[@]} -gt 0 ]; then
@@ -13,7 +13,8 @@ if [ "$SKIP_BASE" = 0 ] && [ -z "${BASE_DONE:-}" ]; then
       fi
       ;;
     arch)
-      pkgs=(git curl base-devel unzip file less procps-ng openssh sudo which util-linux)
+      pkgs=(git curl unzip file less procps-ng openssh which util-linux)
+      [ "$IN_CONTAINER" = 1 ] || pkgs+=(base-devel sudo)
       missing=()
       for p in "${pkgs[@]}"; do pacman -Qi "$p" >/dev/null 2>&1 || missing+=("$p"); done
       if [ ${#missing[@]} -gt 0 ]; then

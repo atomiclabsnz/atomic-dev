@@ -29,6 +29,7 @@ if [ -n "$NEW_USER" ]; then
   user_args=(--skip-base)
   [ "$WITH_CLAUDE" = 1 ] || user_args+=(--no-claude)
   [ "$WITH_RUST" = 1 ] || user_args+=(--no-rust)
+  [ "$WITH_DOCKER" = 1 ] || user_args+=(--no-docker)
   [ -z "$AUTO_ATTACH" ] || user_args+=(--auto-attach "$AUTO_ATTACH")
   say "Continuing as $NEW_USER"
   exec sudo -u "$NEW_USER" -H --preserve-env=GIT_NAME,GIT_EMAIL,ATOMIC_REPOS,GITHUB_TOKEN,CLAUDE_CODE_OAUTH_TOKEN \

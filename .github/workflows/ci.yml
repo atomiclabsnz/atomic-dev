@@ -12,6 +12,21 @@ jobs:
       - name: shellcheck
         run: shellcheck -x bootstrap.sh install.sh lib/*.sh steps/*.sh shell/rc.sh $(grep -l '^#!.*bash' bin/*) test/*.sh
 
+  devcontainer:
+    # `ide` in a project with a dev container: IDE runs inside it (needs a real Docker daemon)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+        with:
+          install_args: "node npm:@devcontainers/cli"
+        env:
+          MISE_GLOBAL_CONFIG_FILE: ${{ github.workspace }}/config/mise/config.toml
+      - name: test/devcontainer-smoke.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: test/devcontainer-smoke.sh image && test/devcontainer-smoke.sh compose
+
   install:
     # Full install as a new server would get it, then tool checks and the IDE smoke test
     runs-on: ubuntu-latest

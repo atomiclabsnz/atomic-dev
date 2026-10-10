@@ -22,6 +22,8 @@ marksman = "2026-02-08"
 "npm:typescript" = "7.0.2"
 "npm:typescript-language-server" = "6.0.1"
 "npm:yaml-language-server" = "1.24.0"
+# Dev containers (bin/ide-devcontainer)
+"npm:@devcontainers/cli" = "0.89.0"
 
 # Yazi's glibc builds need glibc 2.39 (newer than Debian 12), so use the static musl builds on Linux
 [tools."github:sxyazi/yazi"]

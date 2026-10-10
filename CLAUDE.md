@@ -10,6 +10,7 @@ A one-command setup that gives any fresh server (VPS, cloud VM, spot instance) o
 
 - Lint: `shellcheck -x bootstrap.sh install.sh lib/*.sh steps/*.sh shell/rc.sh $(grep -l "^#!.*bash" bin/*) test/*.sh` (`bin/ide-keytest` is Python). `.shellcheckrc` disables SC2034 because variables are shared with sourced steps. Without a local shellcheck, use `docker run --rm -v "$PWD":/mnt -w /mnt koalaman/shellcheck:stable -x ...`.
 - IDE behaviour test (uses this repo's config, leaves your own untouched): `test/ide-smoke.sh`
+- Dev container test (needs Docker and the devcontainer CLI; uses its own tools volume): `test/devcontainer-smoke.sh`, about 35s
 - Full install test in containers: `test/docker.sh` (all images, roughly 3 min each; Arch runs under amd64 emulation) or `test/docker.sh ubuntu:24.04`.
 - Don't run `install.sh` on the host just to test. It modifies the real `~/.config`, `~/.bashrc` / `~/.zshrc` and `~/.local/bin`.
 
@@ -43,6 +44,13 @@ A one-command setup that gives any fresh server (VPS, cloud VM, spot instance) o
   - The smoke test puts a fake `claude` first on PATH.
 - `bin/ide` with no args in `$HOME` (or `-p`) opens an fzf project picker. It reads session folders from the `<name>.dir` files written next to the session checksums.
 - `.github/workflows/`: `ci.yml` runs shellcheck and `test/docker.sh` for each distro. `bump-tools.yml` bumps `config/mise/config.toml` weekly into a PR. Node only moves within its major there; mise needs node installed before the `npm:` tools, so the job bumps it first.
+- Dev containers:
+  - `bin/ide` hands projects with `.devcontainer/devcontainer.json` to `bin/ide-devcontainer`.
+  - That script runs `devcontainer up` with two extra mounts. This repo goes at `/opt/atomic-dev` (read-only), and the shared `atomic-dev-tools` volume goes at `/opt/atomic-dev-tools`.
+  - It symlinks the container user's `~/.local/share/{mise,claude}` into the volume, runs `install.sh --container` (minimal base packages, no Rust or Docker), then execs `ide` inside.
+  - The mounts only apply when a container is created, hence `ide --rebuild`.
+  - `ATOMIC_IN_DEVCONTAINER=1` stops `ide` recursing inside the container.
+  - On macOS the SSH agent comes from `/run/host-services/ssh-auth.sock` (OrbStack and Docker Desktop).
 - The file-tree pane runs `bin/ide-files`, not `yazi` directly: on Linux, Yazi exits if it starts before Zellij has sized the pane.
 - The language servers in `config/mise/config.toml` must match what `config/helix/languages.toml` and Helix's defaults expect. `test/in-container.sh` checks them with `hx --health`.
 - `bin/ide` uses `tr -c 'A-Za-z0-9_\n-'`. The `-` must stay last, or GNU tr treats it as a range.

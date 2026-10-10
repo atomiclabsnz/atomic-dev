@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Set up the atomic-dev environment on this machine. Safe to re-run: it's also the update path.
-# Usage: install.sh [--user NAME] [--no-claude] [--no-rust] [--auto-attach DIR]
-# Env:   GIT_NAME, GIT_EMAIL, ATOMIC_REPOS="org/repo ..."
+# Usage: install.sh [--user NAME] [--no-claude] [--no-rust] [--no-docker] [--auto-attach DIR]
+# Env:   GIT_NAME, GIT_EMAIL, ATOMIC_REPOS="org/repo ...", CLAUDE_CODE_OAUTH_TOKEN
 set -euo pipefail
 
 ATOMIC_HOME=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
@@ -10,12 +10,16 @@ ATOMIC_HOME=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
 
 usage() { sed -n '2,4p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
-NEW_USER="" WITH_CLAUDE=1 WITH_RUST=1 AUTO_ATTACH="" SKIP_BASE=0
+NEW_USER="" WITH_CLAUDE=1 WITH_RUST=1 WITH_DOCKER=1 AUTO_ATTACH="" SKIP_BASE=0 IN_CONTAINER=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --user) NEW_USER=${2:?--user needs a name}; shift ;;
     --no-claude) WITH_CLAUDE=0 ;;
     --no-rust) WITH_RUST=0 ;;
+    --no-docker) WITH_DOCKER=0 ;;
+    # internal (bin/ide-devcontainer): inside a project's dev container, which brings its own
+    # toolchain, so keep the base packages minimal and skip Rust and Docker
+    --container) IN_CONTAINER=1 WITH_RUST=0 WITH_DOCKER=0 ;;
     --auto-attach) AUTO_ATTACH=${2:?--auto-attach needs a directory}; shift ;;
     --skip-base) SKIP_BASE=1 ;;   # internal: base packages already installed by root
     -h|--help) usage ;;

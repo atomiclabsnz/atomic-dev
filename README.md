@@ -5,6 +5,7 @@ One command turns a fresh server (VPS, cloud VM, spot instance) or a Mac into th
 - **IDE:** Zellij (layout and sessions) + Yazi (file tree) + Helix (editor/LSP) + Lazygit
 - **Languages:** Python (uv, ruff, basedpyright), Rust (rustup, rust-analyzer, clippy), Node/TypeScript
 - **Claude Code**
+- **Dev containers:** for projects that have one, the IDE runs inside the container
 
 Servers are treated as disposable: push your work often, and rebuild with the one-liner.
 
@@ -33,7 +34,7 @@ Re-running the command is safe, and it's also how you update: it pulls the repo 
 | Option | |
 |---|---|
 | `--user NAME` | Run as root. Creates a passwordless-sudo user with root's `authorized_keys` and installs everything for that user. |
-| `--no-claude`, `--no-rust` | Skip Claude Code or Rust. |
+| `--no-claude`, `--no-rust`, `--no-docker` | Skip Claude Code, Rust, or Docker (Linux). |
 | `--auto-attach DIR` | Interactive SSH logins go straight into `ide DIR`. |
 
 | Environment variable | |
@@ -91,6 +92,21 @@ Press `Ctrl-q`, then a key. It works in any terminal. `Ctrl-g` (Zellij's usual k
 | `q` | `Alt Shift q` | quit the session |
 | `Esc` | | cancel |
 
+### Projects with a dev container
+
+If a project has `.devcontainer/devcontainer.json` (or `.devcontainer.json`), `ide` runs the whole IDE inside that container. The editor, language servers, shell and Claude then all see the project's own toolchain and dependencies.
+- **Starting:** `ide` starts the container with the devcontainer CLI, installs atomic-dev inside it, and attaches. The tools are kept in a Docker volume (`atomic-dev-tools`) shared by all your containers, so only the first one on a machine downloads them. In our test, a first start with a fresh volume took about 35 seconds, and running `ide` again re-attached in about 2 seconds.
+- **Detaching:** `Ctrl-q d` returns you to the host, and the container keeps running.
+- **What comes from the host:** your git name and email, your SSH agent (for git push), and the Claude token from `secrets.env` if you set one. Without a token, log in to Claude once inside each container.
+- **`ide --rebuild`:** recreates the container. You need this once for a container created by something else, such as VS Code, because atomic-dev's mounts are only added when a container is created.
+- **`ide --host`:** runs the IDE on the machine itself instead.
+
+Docker: on Linux servers the installer installs Docker and adds you to the `docker` group, which takes effect at your next login. On macOS, use OrbStack or Docker Desktop.
+
+Not handled yet:
+- Projects with several dev container configurations in subfolders of `.devcontainer/`.
+- Alpine-based images: the installer supports Debian, Ubuntu and Arch.
+
 In the file tree, `Enter` opens a file in Helix, and `h` stops at the project folder.
 
 **On macOS, the Alt versions only work if your terminal sends Option as Alt.** The installer sets this up for Ghostty (`macos-option-as-alt = left`). For other terminals:
@@ -104,7 +120,7 @@ In the file tree, `Enter` opens a file in Helix, and `h` stops at the project fo
 ```
 bootstrap.sh        curl|bash entry: clone/update into ~/.atomic-dev, run install.sh
 install.sh          parse options, run steps/*.sh in order
-steps/              00-user 10-base 15-terminal 20-config 25-zjstatus 30-mise 40-rust 50-claude 60-shell 70-git
+steps/              00-user 10-base 15-terminal 20-config 25-zjstatus 30-mise 35-docker 40-rust 50-claude 60-shell 70-git
 config/             symlinked into ~/.config (tool versions: config/mise/config.toml)
 bin/                symlinked into ~/.local/bin (ide, helpers)
 shell/rc.sh         sourced from ~/.bashrc / ~/.zshrc
@@ -119,4 +135,5 @@ To upgrade tools, bump the versions in `config/mise/config.toml` (`mise outdated
 test/ide-smoke.sh            # drives a real headless IDE session using this repo's config
 test/docker.sh               # full install in ubuntu:24.04, debian:12 and archlinux, then checks
 test/docker.sh ubuntu:24.04  # a single image
+test/devcontainer-smoke.sh   # `ide` in a throwaway dev container project (needs Docker)
 ```
