@@ -25,7 +25,11 @@ new_session() {
   exec zellij --session "$name" --new-session-with-layout ide
 }
 
-if ! zellij list-sessions --short 2>/dev/null | grep -qx "$name"; then
+state=$(zellij list-sessions --no-formatting 2>/dev/null |
+  awk -v n="$name" '$1 == n { print (/EXITED/ ? "exited" : "running") }') || true  # fails when no sessions exist
+# A quit (exited) session would come back with every pane paused at "press ENTER", so replace it
+if [ "$state" = exited ]; then zellij delete-session "$name" >/dev/null 2>&1 || true; fi
+if [ "$state" != running ]; then
   new_session
 fi
 

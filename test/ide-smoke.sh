@@ -82,7 +82,7 @@ yazi=$(find_pane "/$session *$") && helix=$(find_pane '\[scratch\]') || {
 }
 pass "session started with Yazi and Helix"
 
-alt h                                   # focus the file tree
+key '\021'; key h                       # Ctrl-q h, sent as iTerm2 does (0x11): focus the file tree
 key h                                   # try to go above the project root
 sleep 0.5
 if dump "$yazi" | head -1 | sed 's/[[:space:]]*$//' | grep -q "/$session\$"; then pass "h at project root stays put"; else fail "h left the project root"; dump "$yazi"; fi
@@ -92,6 +92,19 @@ wait_for "$yazi" "it's a file" 5 || true
 key '\r'                                # open the hovered file
 if wait_for "$helix" 'SMOKE-MARKER-42' 5; then pass "Enter in Yazi opens the file in Helix"
 else fail "file did not open in Helix"; dump "$helix"; cat "$tmp/cache/atomic-dev/yazi-to-helix.log" 2>/dev/null || true; fi
+
+# h/l must only move within the tab: from a terminal opened below the editor (rightmost pane),
+# Ctrl-q l used to jump to the git tab
+key '\021'; key t                       # Ctrl-q t: terminal below the editor
+sleep 1.5
+key '\021'; key l                       # Ctrl-q l at the right edge: should stay put
+# shellcheck disable=SC2016  # typed into the pane's shell, which computes 42
+key 'echo STILL-$((6 * 7))\r'
+sleep 1
+if zellij -s "$session" action dump-screen 2>/dev/null | grep -q 'STILL-42'; then pass "h/l stay within the tab at the edges"
+else fail "Ctrl-q l at the right edge left the tab"; fi
+zellij -s "$session" action close-pane 2>/dev/null || true   # remove the extra terminal
+zellij -s "$session" action go-to-tab 1 2>/dev/null || true
 
 alt q                                   # detach
 sleep 1
@@ -104,8 +117,18 @@ start_client "ide"                      # config unchanged: re-attach to the sam
 sleep 2
 if yazi_dir | grep -q '/src$'; then pass "re-attaches when the config is unchanged"
 else fail "unchanged config did not re-attach"; yazi_dir; fi
-alt q
+# Ctrl-q as Ghostty sends it (kitty keyboard protocol, which Zellij turns on)
+ctrl_q='\033[113;5u'
+key "$ctrl_q"; key "$ctrl_q"            # Ctrl-q twice cancels, must not quit
+sleep 0.5
+[ "$(session_state)" = running ] && pass "Ctrl-q Ctrl-q cancels without quitting" || fail "Ctrl-q Ctrl-q quit the session"
+log_size=$(wc -c < "$tmp/client.log")
+key "$ctrl_q"; key d                    # Ctrl-q d: detach
 sleep 1
+if [ "$(session_state)" = running ] && tail -c +"$((log_size + 1))" "$tmp/client.log" | grep -q 'Bye from Zellij'; then
+  pass "Ctrl-q d detaches"; else fail "Ctrl-q d did not detach (session $(session_state))"; fi
+if sed 's/\x1b\[[0-9;?]*[A-Za-z]//g' "$tmp/client.log" | grep -Eq 'ide-files|editor'; then fail "pane frames show titles"
+else pass "pane frames have no titles"; fi
 
 echo stale > "$stamp"                   # pretend the config changed since the session started
 start_client "ide"
@@ -119,5 +142,25 @@ else fail "stale session was not restarted"; tail -c 600 "$tmp/client.log" | tr 
 alt Q                                   # quit
 for _ in $(seq 25); do [ "$(session_state)" = running ] || break; sleep 0.2; done
 [ "$(session_state)" != running ] && pass "Alt Q quits the session" || fail "session still running after Alt Q"
+
+# Starting again after a quit gives a fresh session, not panes paused at "press ENTER"
+start_client "ide"
+if helix=$(find_pane '\[scratch\]') && yazi=$(find_pane "/$session *$") && [ "$(session_state)" = running ]; then
+  pass "ide after quit starts fresh (no ENTER prompts)"
+else fail "ide after quit did not start cleanly"; for p in terminal_{0..3}; do echo "-- $p"; dump "$p" | grep -v '^[[:space:]]*$' | head -5; done; fi
+
+key "$ctrl_q"; key g                    # Ctrl-q g: git tab
+sleep 1
+if zellij -s "$session" action dump-screen 2>/dev/null | grep -qi 'git'; then pass "Ctrl-q g shows the git tab"
+else fail "Ctrl-q g did not show lazygit"; fi
+key "$ctrl_q"; key 1                    # back to the code tab (Helix focused)
+key ':q\r'                              # quit Helix by habit: the pane should restart it
+sleep 3
+if wait_for "$helix" '\[scratch\]' 5 && ! dump "$helix" | grep -qi 'enter'; then pass "quitting Helix restarts it instead of leaving a dead pane"
+else fail "Helix pane did not come back"; dump "$helix"; fi
+
+key "$ctrl_q"; key q                    # Ctrl-q q: quit
+for _ in $(seq 25); do [ "$(session_state)" = running ] || break; sleep 0.2; done
+[ "$(session_state)" != running ] && pass "Ctrl-q q quits" || fail "session still running after Ctrl-q q"
 
 [ "$fails" -eq 0 ] && echo "all passed" || { echo "$fails failed"; exit 1; }

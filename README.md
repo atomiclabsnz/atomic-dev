@@ -51,23 +51,24 @@ Run `claude` and open the login link it prints. Alternatively, export `CLAUDE_CO
 
 `ide [dir]` opens a Zellij session named after the folder, or re-attaches to it if one exists. Sessions survive SSH disconnects. If the atomic-dev config has changed since that session started, `ide` offers to restart it, because a re-attached session keeps its old setup.
 
-| Key | |
-|---|---|
-| `Alt h` / `Alt l` | file tree / editor |
-| `Alt 1` `2` `3` | code / git / shell tabs |
-| `Alt g` | lazygit popup |
-| `Alt t` | terminal below |
-| `Alt /` | full cheat sheet |
-| `Alt q` | detach (the session keeps running) |
-| `Alt Q` | quit the session |
-| `Ctrl-g` | unlock Zellij's own menus |
+Press `Ctrl-q`, then a key. It works in any terminal. `Ctrl-g` (Zellij's usual key) also works wherever nothing else grabs it; Chrome's Gemini launcher takes it on macOS. If your terminal sends Alt, `Alt`+key does the same thing in one go.
+
+| `Ctrl-q`, then | Alt version | |
+|---|---|---|
+| `h` / `l` | `Alt h` / `Alt l` | file tree / editor (clicking a pane also works) |
+| `1` `2` `3` | `Alt 1` `2` `3` | code / git / shell tabs |
+| `g` | `Alt g` | git tab (lazygit) |
+| `t` | `Alt t` | terminal below |
+| `/` | `Alt /` | full cheat sheet |
+| `d` | `Alt d` | detach (the session keeps running) |
+| `q` | `Alt Shift q` | quit the session |
+| `Esc` | | cancel |
 
 In the file tree, `Enter` opens a file in Helix, and `h` stops at the project folder.
 
-**On macOS, the Alt keys only work if your terminal sends Option as Meta:**
+**On macOS, the Alt versions only work if your terminal sends Option as Alt.** The installer sets this up for Ghostty (`macos-option-as-alt = left`). For other terminals:
 - iTerm2: Profiles → Keys → Left Option = Esc+
 - Terminal.app: Settings → Profiles → Keyboard → "Use Option as Meta key"
-- Ghostty: `macos-option-as-alt = true`
 
 **Fonts:** install a Nerd Font (for example JetBrainsMono Nerd Font) on the machine your terminal runs on. The installer adds it automatically on a Mac.
 

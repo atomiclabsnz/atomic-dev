@@ -36,12 +36,12 @@ cat <<'MSG'
 
 Done. Open a new shell (or `exec $SHELL -l`), cd into a repo and run:  ide
 
-  Alt h / Alt l   file tree / editor           Alt /   cheat sheet
-  Alt g           lazygit popup                Alt 1/2/3  code / git / shell tabs
-  Alt q           detach (keeps running)       Alt Q   quit the session
-  Ctrl-g          unlock Zellij's own menus (resize, splits, sessions)
+  Ctrl-q then h / l   file tree / editor        Ctrl-q then /   cheat sheet
+  Ctrl-q then g       git tab (lazygit)         Ctrl-q then 1/2/3  code / git / shell tabs
+  Ctrl-q then d       detach (keeps running)    Ctrl-q then q   quit the session
+  Every Ctrl-q key also works as Alt+key in one go (quit is Alt Shift q).
 
-Alt keys need your local terminal to send Option/Alt as Meta (macOS: iTerm2 Left Option = Esc+,
-Terminal.app "Use Option as Meta key", Ghostty macos-option-as-alt = true).
+Alt keys need your local terminal to send Option as Alt (iTerm2: Left Option = Esc+,
+Terminal.app: "Use Option as Meta key", Ghostty: macos-option-as-alt = left).
 Claude Code: run `claude` and follow the login link, or export CLAUDE_CODE_OAUTH_TOKEN / ANTHROPIC_API_KEY.
 MSG

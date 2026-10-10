@@ -1,16 +1,24 @@
-// Start locked so Helix gets every key. Ctrl-g unlocks Zellij's own modes.
+// Start locked so Helix gets every key.
+// Two ways to drive the IDE: Alt+key directly, or Ctrl-q then a plain key (works in any
+// terminal, including ones that don't send Alt). The plain keys return to locked mode.
+// Ctrl-q rather than Zellij's default Ctrl-g, which Chrome's Gemini launcher grabs system-wide
+// on macOS. Ctrl+letter is encoded the same way by every terminal (unlike Ctrl-]), and Helix,
+// Yazi and lazygit don't use Ctrl-q. Ctrl-g still works where nothing else takes it.
 default_mode "locked"
 theme "catppuccin-mocha"
 pane_frames true
 show_startup_tips false
 show_release_notes false
 mouse_mode true
+// No resurrection: a quit session is gone, so `ide` starts fresh instead of
+// bringing panes back paused at "press ENTER to run"
+session_serialization false
 
 keybinds {
     // Available in every mode, including locked
     shared {
-        bind "Alt h" { MoveFocusOrTab "Left"; }
-        bind "Alt l" { MoveFocusOrTab "Right"; }
+        bind "Alt h" { MoveFocus "Left"; }
+        bind "Alt l" { MoveFocus "Right"; }
         bind "Alt j" { MoveFocus "Down"; }
         bind "Alt k" { MoveFocus "Up"; }
         bind "Alt 1" { GoToTab 1; }
@@ -19,10 +27,32 @@ keybinds {
         bind "Alt f" { ToggleFloatingPanes; }
         bind "Alt z" { ToggleFocusFullscreen; }
         bind "Alt t" { NewPane "Down"; }
-        bind "Alt g" { Run "lazygit" { floating true; close_on_exit true; }; }
+        bind "Alt g" { GoToTab 2; }
         bind "Alt /" { Run "ide-help" { floating true; close_on_exit true; }; }
         // Detach leaves the session running (re-attach with `ide`); Quit kills it
-        bind "Alt q" { Detach; }
+        bind "Alt d" "Alt q" { Detach; }
         bind "Alt Q" { Quit; }
+    }
+    locked {
+        bind "Ctrl q" { SwitchToMode "Normal"; }
+    }
+    // Ctrl-q (or Ctrl-g) from locked enters normal mode; these plain keys act and lock again
+    normal {
+        bind "h" "Left" { MoveFocus "Left"; SwitchToMode "Locked"; }
+        bind "l" "Right" { MoveFocus "Right"; SwitchToMode "Locked"; }
+        bind "j" "Down" { MoveFocus "Down"; SwitchToMode "Locked"; }
+        bind "k" "Up" { MoveFocus "Up"; SwitchToMode "Locked"; }
+        bind "1" { GoToTab 1; SwitchToMode "Locked"; }
+        bind "2" { GoToTab 2; SwitchToMode "Locked"; }
+        bind "3" { GoToTab 3; SwitchToMode "Locked"; }
+        bind "f" { ToggleFloatingPanes; SwitchToMode "Locked"; }
+        bind "z" { ToggleFocusFullscreen; SwitchToMode "Locked"; }
+        bind "t" { NewPane "Down"; SwitchToMode "Locked"; }
+        bind "g" { GoToTab 2; SwitchToMode "Locked"; }
+        bind "/" "?" { Run "ide-help" { floating true; close_on_exit true; }; SwitchToMode "Locked"; }
+        bind "d" { Detach; }
+        bind "q" { Quit; }
+        // Ctrl-q again cancels (overrides Zellij's default Ctrl-q = quit outside locked mode)
+        bind "Esc" "Ctrl q" { SwitchToMode "Locked"; }
     }
 }

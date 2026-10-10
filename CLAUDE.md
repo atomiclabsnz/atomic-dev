@@ -8,7 +8,7 @@ A one-command setup that gives any fresh server (VPS, cloud VM, spot instance) o
 
 ## Commands
 
-- Lint: `shellcheck -x bootstrap.sh install.sh lib/*.sh steps/*.sh shell/rc.sh bin/* test/*.sh`. `.shellcheckrc` disables SC2034 because variables are shared with sourced steps. Without a local shellcheck, use `docker run --rm -v "$PWD":/mnt -w /mnt koalaman/shellcheck:stable -x ...`.
+- Lint: `shellcheck -x bootstrap.sh install.sh lib/*.sh steps/*.sh shell/rc.sh $(grep -l "^#!.*bash" bin/*) test/*.sh` (`bin/ide-keytest` is Python). `.shellcheckrc` disables SC2034 because variables are shared with sourced steps. Without a local shellcheck, use `docker run --rm -v "$PWD":/mnt -w /mnt koalaman/shellcheck:stable -x ...`.
 - IDE behaviour test (uses this repo's config, leaves your own untouched): `test/ide-smoke.sh`
 - Full install test in containers: `test/docker.sh` (all images, roughly 3 min each; Arch runs under amd64 emulation) or `test/docker.sh ubuntu:24.04`.
 - Don't run `install.sh` on the host just to test. It modifies the real `~/.config`, `~/.bashrc` / `~/.zshrc` and `~/.local/bin`.
@@ -26,12 +26,14 @@ A one-command setup that gives any fresh server (VPS, cloud VM, spot instance) o
 
 ## Coupled pieces (change together)
 
+- Every IDE action has two bindings in `config/zellij/config.kdl`: `Alt`+key in `shared`, and `Ctrl-q` then a plain key in `normal` (each returns to locked mode). h/l use `MoveFocus`, not `MoveFocusOrTab`, so at the edge of a tab they stay put instead of jumping to another tab. The Ctrl-] route exists because macOS terminals don't send Alt by default (`steps/15-terminal.sh` fixes that for Ghostty). The leader is Ctrl-q: Zellij's default Ctrl-g is grabbed system-wide by Chrome's Gemini launcher on macOS. Ctrl-] was tried and dropped, because Zellij ignores the legacy byte (0x1d) that iTerm2 sends. Ctrl+letter arrives reliably from every terminal. Ctrl-g stays as a fallback, and `normal` rebinds Ctrl-q to cancel, overriding Zellij's default Ctrl-q = quit. `bin/ide-keytest` shows what a terminal actually sends.
 - Zellij `keybinds` in `config/zellij/config.kdl` ↔ `config/ide/cheatsheet.txt` ↔ `bin/ide-hints` ↔ the summary at the end of `install.sh` ↔ README.
 - `bin/ide` starts the session with layout `ide` (`config/zellij/layouts/ide.kdl`). It also exports `IDE_ROOT`, which the Yazi plugin `config/yazi/plugins/project-root.yazi` uses to stop `h` at the project folder; `config/yazi/keymap.toml` binds it.
 - `bin/ide` records a checksum of `config/` + `bin/` in `~/.cache/atomic-dev/sessions/<name>` when it creates a session. On re-attach, a mismatch (or no record) prompts a restart, since a running Zellij session keeps its old layout, panes and env. This depends on `~/.local/bin/ide` being a symlink into the repo.
 - Opening a file from Yazi: an opener in `yazi.toml` runs `yazi-to-helix %s`, which uses `zellij action` to move focus right and type `:open '<path>'` into Helix. This relies on the layout putting the file tree directly left of the editor.
   - Yazi 26 dropped `$@` in openers; use `%s`, which Yazi quotes itself.
   - Keep the short sleep between Esc and `:`, or Helix reads the pair as Alt+`:`.
+- Layout panes run their program through `bin/ide-pane`, which restarts it on exit, so `:q` in Helix or `q` in lazygit never leaves a dead "press ENTER" pane. `session_serialization false` plus `bin/ide` deleting EXITED sessions stops quit sessions from being resurrected with every pane paused. Lazygit lives in the git tab only; `g` switches to that tab, so there's no popup to close.
 - The file-tree pane runs `bin/ide-files`, not `yazi` directly: on Linux, Yazi exits if it starts before Zellij has sized the pane.
 - The language servers in `config/mise/config.toml` must match what `config/helix/languages.toml` and Helix's defaults expect. `test/in-container.sh` checks them with `hx --health`.
 - `bin/ide` uses `tr -c 'A-Za-z0-9_\n-'`. The `-` must stay last, or GNU tr treats it as a range.

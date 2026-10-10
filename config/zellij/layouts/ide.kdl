@@ -6,12 +6,12 @@ layout {
     }
     tab name="code" focus=true {
         pane split_direction="vertical" {
-            pane size="22%" name="files" command="ide-files"
-            pane name="editor" command="hx" focus=true
+            pane size="22%" name=" " command="ide-pane" { args "ide-files"; }
+            pane name=" " command="ide-pane" focus=true { args "hx"; }
         }
     }
     tab name="git" {
-        pane name="lazygit" command="lazygit"
+        pane name=" " command="ide-pane" { args "lazygit"; }
     }
     tab name="shell" {
         pane

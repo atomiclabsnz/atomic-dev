@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+# Show exactly what the terminal sends for each key, with the same keyboard mode Zellij asks for
+# (kitty keyboard protocol, "disambiguate" flag). Ctrl-C twice to exit.
+# Zellij needs: Ctrl-q = ESC[113;5u or \x11; Option-h = ESC[104;3u or ESCh (not ˙).
+import os, sys, termios, tty, select
+
+fd = sys.stdin.fileno()
+old = termios.tcgetattr(fd)
+out = sys.stdout
+out.write("Press: Ctrl-q   Option-h   Option-Shift-q   (Ctrl-C twice to stop)\r\n")
+out.write("\x1b[>1u")  # push kitty keyboard flags like Zellij does
+out.flush()
+ctrl_c = 0
+try:
+    tty.setraw(fd)
+    while True:
+        data = os.read(fd, 64)
+        while select.select([fd], [], [], 0.03)[0]:
+            data += os.read(fd, 64)
+        shown = "".join(c if 32 <= ord(c) < 127 else "\\x%02x" % ord(c) if ord(c) < 128 else c
+                        for c in data.decode("utf-8", "replace")).replace("\\x1b", "ESC")
+        out.write("  got: %-28s (%d bytes)\r\n" % (shown, len(data)))
+        out.flush()
+        ctrl_c = ctrl_c + 1 if data in (b"\x03", b"\x1b[99;5u") else 0
+        if ctrl_c >= 2:
+            break
+finally:
+    out.write("\x1b[<u")  # pop kitty flags
+    termios.tcsetattr(fd, termios.TCSADRAIN, old)
+    out.write("\n")

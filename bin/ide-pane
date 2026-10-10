@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Run an IDE pane's program (layouts/ide.kdl) and restart it when it exits, so quitting
+# Helix, Yazi or lazygit by habit doesn't leave a dead pane asking for ENTER.
+# Leave the IDE itself with Ctrl-q d (detach) or Ctrl-q q (quit).
+while :; do
+  started=$(date +%s)
+  "$@" || true
+  # Don't spin if the program can't start at all
+  if [ $(( $(date +%s) - started )) -lt 2 ]; then sleep 2; fi
+done

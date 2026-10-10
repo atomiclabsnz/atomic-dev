@@ -1,13 +1,16 @@
  TERMINAL IDE CHEAT SHEET              (edit: ~/.config/ide/cheatsheet.txt)
  ─────────────────────────────────────────────────────────────────────────
- WINDOW (Zellij — works everywhere)
-   Alt h / Alt l     focus file tree / editor     Alt /   this help (q close)
-   Alt j / Alt k     focus pane below / above     Alt g   lazygit popup
-   Alt 1 / 2 / 3     code / git / shell tab       Alt t   terminal below
-   Alt z             fullscreen pane              Alt f   show/hide popups
-   Alt q             detach (session keeps running; `ide` re-attaches)
-   Alt Q             quit (kill the session)
-   Ctrl-g            unlock Zellij menus (resize, splits, sessions); again to lock
+ WINDOW (Zellij)   Ctrl-q then a key  —or—  Alt+key in one go
+   h / l             focus file tree / editor     /       this help (q close)
+   j / k             focus pane below / above     g       git tab (lazygit)
+   1 / 2 / 3         code / git / shell tab       t       terminal below
+   z                 fullscreen pane              f       show/hide popups
+   d                 detach (session keeps running; `ide` re-attaches)
+   q                 quit (kill the session)      Esc     cancel
+   Ctrl-g works the same where nothing else grabs it. Ctrl-q twice cancels.
+   Quitting Helix or lazygit just restarts it; leave the IDE with d or q.
+   Alt keys need your terminal to send Option as Alt (Ghostty: macos-option-as-alt)
+   With Alt, quit is Alt Shift q. Mouse clicks also focus panes.
 
  FILE TREE (Yazi)
    j / k             down / up                    Enter   open in Helix
