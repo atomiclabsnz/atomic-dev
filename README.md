@@ -14,7 +14,7 @@ Servers are treated as disposable: push your work often, and rebuild with the on
 On a fresh Ubuntu/Debian or Arch server, as root:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/CHANGE-ME/atomic-dev/main/bootstrap.sh \
+curl -fsSL https://raw.githubusercontent.com/atomiclabsnz/atomic-dev/main/bootstrap.sh \
   | GIT_NAME="Your Name" GIT_EMAIL="you@example.com" bash -s -- --user dev
 ```
 

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # One-command setup for a fresh machine:
-#   curl -fsSL https://raw.githubusercontent.com/CHANGE-ME/atomic-dev/main/bootstrap.sh | bash -s -- [install.sh options]
+#   curl -fsSL https://raw.githubusercontent.com/atomiclabsnz/atomic-dev/main/bootstrap.sh | bash -s -- [install.sh options]
 # Clones (or updates) this repo into ~/.atomic-dev, then runs install.sh with the same options.
 # Env: ATOMIC_REPO_URL, ATOMIC_REF (branch/tag, default main), ATOMIC_HOME (checkout dir)
 set -euo pipefail
 
 # Everything is in main() so a partially downloaded script never runs
 main() {
-  local repo_url="${ATOMIC_REPO_URL:-https://github.com/CHANGE-ME/atomic-dev.git}"
+  local repo_url="${ATOMIC_REPO_URL:-https://github.com/atomiclabsnz/atomic-dev.git}"
   local ref="${ATOMIC_REF:-main}"
   local dest="${ATOMIC_HOME:-$HOME/.atomic-dev}"
 
