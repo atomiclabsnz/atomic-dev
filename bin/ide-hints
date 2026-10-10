@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-# One-line key hint bar shown at the bottom of every IDE tab (layouts/ide.kdl).
-printf '\033[?25l\033[2m Ctrl-q then: h/l move between panes · 1/2/3 tabs · g git · t terminal · / help · d detach · q quit   (or Alt+key)\033[0m'
-while :; do sleep 3600; done

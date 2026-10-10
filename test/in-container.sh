@@ -4,10 +4,14 @@ set -euo pipefail
 # Docker (esp. under emulation) can't run pacman's download sandbox; real Arch hosts are fine
 if [ -f /etc/pacman.conf ]; then sed -i '/^\[options\]/a DisableSandbox' /etc/pacman.conf; fi
 mkdir -p /root/.atomic-dev && cp -a /src/. /root/.atomic-dev/
+SECONDS=0
 bash /root/.atomic-dev/install.sh --user dev
+echo "==> First run took ${SECONDS}s"
 
 echo "==> Second run (should change nothing)"
+SECONDS=0
 sudo -u dev -H bash /home/dev/.atomic-dev/install.sh --skip-base
+echo "==> Second run took ${SECONDS}s"
 
 echo "==> Checks"
 sudo -u dev -H bash <<'CHECKS'
@@ -26,6 +30,8 @@ done
 check "no backups made on a fresh machine" "[ -z \"\$(find ~ -name '*.bak-*' -print -quit)\" ]"
 check "rc hook added exactly once" "[ \"\$(grep -c '# atomic-dev\$' ~/.bashrc)\" = 1 ]"
 check "configs are symlinks into the repo" "[ \"\$(readlink ~/.config/zellij/config.kdl)\" = ~/.atomic-dev/config/zellij/config.kdl ]"
+check "zjstatus installed with permissions pre-granted" "grep -q zjstatus.wasm ~/.cache/zellij/permissions.kdl && [ -f ~/.local/share/atomic-dev/zjstatus.wasm ]"
+check "Claude notification hook configured" "grep -q ide-notify ~/.claude/settings.json"
 check "git identity set" "[ \"\$(git config --global user.email)\" = smoke@example.com ]"
 
 bash ~/.atomic-dev/test/ide-smoke.sh || fails=$((fails+1))

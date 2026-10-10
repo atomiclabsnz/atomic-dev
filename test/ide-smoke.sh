@@ -28,7 +28,16 @@ printf 'SMOKE-MARKER-42\n' > "$proj/src/it's a file.txt"
 
 export XDG_CONFIG_HOME="$tmp/config" XDG_CACHE_HOME="$tmp/cache"
 export ZELLIJ_CONFIG_DIR="$tmp/config/zellij" YAZI_CONFIG_HOME="$tmp/config/yazi"
-export PATH="$REPO/bin:$PATH"
+# On Linux Zellij keeps plugin permissions under $XDG_CACHE_HOME, so carry over the grant
+# for the status bar plugin that install.sh made (macOS always uses ~/Library/Caches)
+if [ -f "$HOME/.cache/zellij/permissions.kdl" ]; then
+  mkdir -p "$XDG_CACHE_HOME/zellij"; cp "$HOME/.cache/zellij/permissions.kdl" "$XDG_CACHE_HOME/zellij/"
+fi
+# A stand-in for Claude Code, so the claude tab doesn't start (or need) the real thing
+mkdir -p "$tmp/fakebin"
+printf '#!/bin/sh\necho FAKE-CLAUDE-READY\nexec sleep 100000\n' > "$tmp/fakebin/claude"
+chmod +x "$tmp/fakebin/claude"
+export PATH="$REPO/bin:$tmp/fakebin:$PATH"
 unset ZELLIJ ZELLIJ_SESSION_NAME
 
 pass() { printf '  \033[32mok\033[0m   %s\n' "$*"; }
@@ -47,7 +56,15 @@ start_client() {
 }
 key()  { printf '%b' "$1" >>"$keys"; sleep 0.3; }
 alt()  { key "\033$1"; }
-dump() { zellij -s "$session" action dump-screen -p "$1" 2>/dev/null || true; }
+# dump-screen can hang if the session has died, so give it a few seconds at most
+dump() {
+  local out="$tmp/dump.$RANDOM" pid i
+  zellij -s "$session" action dump-screen -p "$1" >"$out" 2>/dev/null &
+  pid=$!
+  for i in $(seq 15); do kill -0 "$pid" 2>/dev/null || break; sleep 0.2; done
+  kill "$pid" 2>/dev/null || true
+  cat "$out"; rm -f "$out"
+}
 # wait_for PANE REGEX [SECONDS]
 wait_for() {
   local i
@@ -84,8 +101,9 @@ pass "session started with Yazi and Helix"
 
 key '\021'; key h                       # Ctrl-q h, sent as iTerm2 does (0x11): focus the file tree
 key h                                   # try to go above the project root
-sleep 0.5
-if dump "$yazi" | head -1 | sed 's/[[:space:]]*$//' | grep -q "/$session\$"; then pass "h at project root stays put"; else fail "h left the project root"; dump "$yazi"; fi
+sleep 1                                 # give h time to act, then expect the root header
+if wait_for "$yazi" "/$session *\$" 2 && dump "$yazi" | grep -q ' src'; then pass "h at project root stays put"
+else fail "h left the project root"; dump "$yazi"; fi
 
 key l                                   # into src/
 wait_for "$yazi" "it's a file" 5 || true
@@ -96,12 +114,16 @@ else fail "file did not open in Helix"; dump "$helix"; cat "$tmp/cache/atomic-de
 # h/l must only move within the tab: from a terminal opened below the editor (rightmost pane),
 # Ctrl-q l used to jump to the git tab
 key '\021'; key t                       # Ctrl-q t: terminal below the editor
-sleep 1.5
+sleep 3                                 # let its shell start
 key '\021'; key l                       # Ctrl-q l at the right edge: should stay put
 # shellcheck disable=SC2016  # typed into the pane's shell, which computes 42
 key 'echo STILL-$((6 * 7))\r'
-sleep 1
-if zellij -s "$session" action dump-screen 2>/dev/null | grep -q 'STILL-42'; then pass "h/l stay within the tab at the edges"
+still_here=no
+for _ in $(seq 25); do
+  zellij -s "$session" action dump-screen 2>/dev/null | grep -q 'STILL-42' && { still_here=yes; break; }
+  sleep 0.2
+done
+if [ "$still_here" = yes ]; then pass "h/l stay within the tab at the edges"
 else fail "Ctrl-q l at the right edge left the tab"; fi
 zellij -s "$session" action close-pane 2>/dev/null || true   # remove the extra terminal
 zellij -s "$session" action go-to-tab 1 2>/dev/null || true
@@ -159,8 +181,42 @@ sleep 3
 if wait_for "$helix" '\[scratch\]' 5 && ! dump "$helix" | grep -qi 'enter'; then pass "quitting Helix restarts it instead of leaving a dead pane"
 else fail "Helix pane did not come back"; dump "$helix"; fi
 
+log_size=$(wc -c < "$tmp/client.log")
+key "$ctrl_q"                           # status bar expands to the full key list
+bar_expanded=no
+for _ in $(seq 15); do
+  tail -c +"$((log_size + 1))" "$tmp/client.log" | sed 's/\x1b\[[0-9;?]*[A-Za-z]//g' | grep -q 'd detach' && { bar_expanded=yes; break; }
+  sleep 0.2
+done
+if [ "$bar_expanded" = yes ]; then
+  pass "Ctrl-q shows the key list in the status bar"
+else
+  fail "status bar didn't show keys after Ctrl-q"
+  tail -c 3000 "$tmp/client.log" | sed 's/\x1b\[[0-9;?]*[A-Za-z]//g' | tr -s ' ' | tail -c 800
+fi
+key c                                   # ...then c: Claude tab
+sleep 1
+if zellij -s "$session" action dump-screen 2>/dev/null | grep -q 'FAKE-CLAUDE-READY'; then pass "Ctrl-q c shows the claude tab"
+else fail "Ctrl-q c did not show Claude"; fi
+
+log_size=$(wc -c < "$tmp/client.log")
+zellij -s "$session" action new-pane -- bash -c "printf '{\"message\":\"Claude needs your permission\"}' | IDE_ROOT='$proj' ide-notify; sleep 2" >/dev/null
+sleep 1.5
+if tail -c +"$((log_size + 1))" "$tmp/client.log" | grep -q "]9;Claude · $session: Claude needs your permission"; then
+  pass "ide-notify sends a desktop notification through Zellij"; else fail "no OSC 9 notification reached the terminal"; fi
+zellij -s "$session" action go-to-tab 1 2>/dev/null || true
+
 key "$ctrl_q"; key q                    # Ctrl-q q: quit
 for _ in $(seq 25); do [ "$(session_state)" = running ] || break; sleep 0.2; done
 [ "$(session_state)" != running ] && pass "Ctrl-q q quits" || fail "session still running after Ctrl-q q"
+
+# Project picker: lists projects under $IDE_PROJECTS; typing filters, Enter opens
+start_client "IDE_PROJECTS='$tmp' ide -p"
+sleep 1.5
+key "$session"; sleep 0.5; key '\r'
+for _ in $(seq 50); do [ "$(session_state)" = running ] && break; sleep 0.2; done
+if [ "$(session_state)" = running ]; then pass "ide -p picks a project and opens it"
+else fail "ide -p did not open the project"; tail -c 1500 "$tmp/client.log" | sed 's/\x1b\[[0-9;?]*[A-Za-z]//g' | tr -s ' \n' | tail -c 600; fi
+key "$ctrl_q"; key q
 
 [ "$fails" -eq 0 ] && echo "all passed" || { echo "$fails failed"; exit 1; }

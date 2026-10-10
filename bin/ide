@@ -1,10 +1,43 @@
 #!/usr/bin/env bash
-# Open (or re-attach to) an IDE session for a project directory (default: current).
+# Open (or re-attach to) an IDE session for a project directory.
+#   ide [dir]   project in dir (default: current directory)
+#   ide -p      pick from running sessions and ~/src/* (also what plain `ide` does in $HOME)
 # Re-attaching keeps whatever config the session started with, so if the atomic-dev config
 # has changed since (or the session predates this check), offer to restart it.
 set -euo pipefail
 if [ -n "${ZELLIJ:-}" ]; then
-  echo "Already inside a Zellij session. Detach first (Alt q)." >&2; exit 1
+  echo "Already inside a Zellij session. Detach first (Ctrl-q d)." >&2; exit 1
+fi
+sessions_dir="${XDG_CACHE_HOME:-$HOME/.cache}/atomic-dev/sessions"
+projects_dir="${IDE_PROJECTS:-$HOME/src}"
+
+# Running sessions first (with the folder they were opened in), then projects not yet open
+pick_project() {
+  local running name dir tilde='~'
+  running=$(zellij list-sessions --no-formatting 2>/dev/null | awk '!/EXITED/ { print $1 }') || true
+  {
+    for name in $running; do
+      dir=$(cat "$sessions_dir/$name.dir" 2>/dev/null) || continue
+      printf '● %-24s %s\t%s\n' "$name" "${dir/#$HOME/$tilde}" "$dir"
+    done
+    for dir in "$projects_dir"/*/; do
+      [ -d "$dir" ] || continue
+      dir=${dir%/}
+      grep -qx "$(basename "$dir" | tr -c 'A-Za-z0-9_\n-' '-')" <<<"$running" && continue
+      printf '  %-24s %s\t%s\n' "$(basename "$dir")" "${dir/#$HOME/$tilde}" "$dir"
+    done
+  } | fzf --delimiter '\t' --with-nth 1 --prompt 'project> ' --header '● = running' --height 40% --reverse |
+    cut -f2
+}
+
+if [ "${1:-}" = -p ] || { [ $# -eq 0 ] && [ "$PWD" = "$HOME" ] && [ -t 0 ]; }; then
+  if command -v fzf >/dev/null 2>&1; then
+    dir=$(pick_project) || true
+    [ -n "$dir" ] || exit 0   # picker cancelled
+    set -- "$dir"
+  elif [ "${1:-}" = -p ]; then
+    echo "ide -p needs fzf" >&2; exit 1
+  fi
 fi
 cd "${1:-.}"
 cd "$(pwd -P)"
@@ -18,10 +51,12 @@ fingerprint=""
 if [ -d "$repo/config" ]; then
   fingerprint=$(find "$repo/config" "$repo/bin" -type f -print0 | LC_ALL=C sort -z | xargs -0 cat | cksum)
 fi
-stamp="${XDG_CACHE_HOME:-$HOME/.cache}/atomic-dev/sessions/$name"
+stamp="$sessions_dir/$name"
 
 new_session() {
-  if [ -n "$fingerprint" ]; then mkdir -p "$(dirname "$stamp")"; printf '%s\n' "$fingerprint" > "$stamp"; fi
+  mkdir -p "$sessions_dir"
+  printf '%s\n' "$fingerprint" > "$stamp"
+  printf '%s\n' "$PWD" > "$stamp.dir"   # for the project picker
   exec zellij --session "$name" --new-session-with-layout ide
 }
 

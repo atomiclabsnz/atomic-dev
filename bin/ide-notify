@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Claude Code Notification hook (added to ~/.claude/settings.json by steps/50-claude.sh).
+# Inside the IDE, send an OSC 9 desktop notification: Zellij passes it through to the
+# terminal you're using (Ghostty, iTerm2, ...), even over SSH. Outside Zellij, do nothing
+# and leave notifications to Claude Code itself.
+[ -n "${ZELLIJ:-}" ] || exit 0
+msg=$(sed -n 's/.*"message"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1 | tr -d '\000-\037')
+text="Claude · $(basename "${IDE_ROOT:-$PWD}"): ${msg:-needs your attention}"
+tty=/dev/tty
+if ! { : >/dev/tty; } 2>/dev/null; then tty="/dev/$(ps -o tty= -p "$PPID" | tr -d ' ')"; fi
+printf '\033]9;%s\007' "$text" > "$tty" 2>/dev/null || true

@@ -1,0 +1,48 @@
+name: Bump tool versions
+# Weekly: bump the pinned versions in config/mise/config.toml and open a PR.
+# CI runs the full install test on the PR, so only merge it when that passes.
+on:
+  schedule:
+    - cron: "0 18 * * 0"   # Sunday 18:00 UTC (Monday morning in NZ)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+        with:
+          install: false
+      - name: Bump pinned versions
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MISE_YES: "1"
+        run: |
+          # mise bumps a project mise.toml in place, so work on a copy
+          work=$(mktemp -d)
+          cp config/mise/config.toml "$work/mise.toml"
+          cd "$work"
+          mise trust --quiet mise.toml
+          # node stays on its LTS major; bump it within that first, since npm: tools need it
+          node_major=$(sed -n 's/^node = "\([0-9]*\)\..*/\1/p' mise.toml)
+          node_latest=$(mise latest "node@$node_major")
+          sed -i "s/^node = \".*\"/node = \"$node_latest\"/" mise.toml
+          mise install
+          tools=$(mise outdated --bump --json | jq -r 'keys[] | select(. != "node")')
+          if [ -n "$tools" ]; then mise upgrade --bump $tools; fi
+          cp mise.toml "$GITHUB_WORKSPACE/config/mise/config.toml"
+          cd "$GITHUB_WORKSPACE" && git diff --stat
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          branch: bump-tools
+          title: "Bump pinned tool versions"
+          commit-message: "Bump pinned tool versions"
+          body: |
+            Weekly bump of `config/mise/config.toml` (`mise upgrade --bump`).
+            Merge once CI's install test passes on all distros. Node only moves within its current
+            major (LTS line); bump that by hand. zjstatus is pinned separately in `steps/25-zjstatus.sh`.

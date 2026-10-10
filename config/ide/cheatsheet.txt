@@ -2,8 +2,9 @@
  ─────────────────────────────────────────────────────────────────────────
  WINDOW (Zellij)   Ctrl-q then a key  —or—  Alt+key in one go
    h / l             focus file tree / editor     /       this help (q close)
-   j / k             focus pane below / above     g       git tab (lazygit)
-   1 / 2 / 3         code / git / shell tab       t       terminal below
+   j / k             focus pane below / above     g       git tab
+   1 2 3 4           code/claude/git/shell tab    t       terminal below
+   c                 claude tab
    z                 fullscreen pane              f       show/hide popups
    d                 detach (session keeps running; `ide` re-attaches)
    q                 quit (kill the session)      Esc     cancel

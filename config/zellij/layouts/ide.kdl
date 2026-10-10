@@ -1,14 +1,36 @@
+// Tabs: 1 code, 2 claude, 3 git, 4 shell. Keys are in config.kdl; the status bar
+// (zjstatus, installed by steps/25-zjstatus.sh) shows them and expands after Ctrl-q.
 layout {
     default_tab_template {
         children
-        pane size=1 borderless=true command="ide-hints"
-        pane size=1 borderless=true { plugin location="zellij:compact-bar"; }
+        pane size=1 borderless=true {
+            plugin location="file:~/.local/share/atomic-dev/zjstatus.wasm" {
+                format_left   "{tabs}"
+                format_right  "{mode}"
+                format_space  ""
+                hide_frame_for_single_pane "false"
+
+                mode_locked   "#[fg=#7f849c] Ctrl-q menu · Alt+key "
+                mode_normal   "#[bg=#f9e2af,fg=#1e1e2e,bold] h/l panes  1-4 tabs  c claude  g git  t terminal  / help  d detach  q quit  Esc cancel "
+                mode_pane     "#[bg=#89b4fa,fg=#1e1e2e,bold] PANE · Esc back "
+                mode_tab      "#[bg=#89b4fa,fg=#1e1e2e,bold] TAB · Esc back "
+                mode_resize   "#[bg=#89b4fa,fg=#1e1e2e,bold] RESIZE · Esc back "
+                mode_scroll   "#[bg=#89b4fa,fg=#1e1e2e,bold] SCROLL · Esc back "
+                mode_session  "#[bg=#89b4fa,fg=#1e1e2e,bold] SESSION · Esc back "
+
+                tab_normal    "#[fg=#7f849c] {index} {name} "
+                tab_active    "#[fg=#1e1e2e,bg=#cba6f7,bold] {index} {name} "
+            }
+        }
     }
     tab name="code" focus=true {
         pane split_direction="vertical" {
             pane size="22%" name=" " command="ide-pane" { args "ide-files"; }
             pane name=" " command="ide-pane" focus=true { args "hx"; }
         }
+    }
+    tab name="claude" {
+        pane name=" " command="ide-claude"
     }
     tab name="git" {
         pane name=" " command="ide-pane" { args "lazygit"; }

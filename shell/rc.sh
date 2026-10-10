@@ -12,6 +12,10 @@ unset -f _atomic_path
 export COLORTERM="${COLORTERM:-truecolor}"
 export EDITOR="${EDITOR:-hx}" VISUAL="${VISUAL:-hx}"
 
+# Headless Claude Code login, if install.sh was given CLAUDE_CODE_OAUTH_TOKEN
+# shellcheck disable=SC1091
+[ -f "${XDG_CONFIG_HOME:-$HOME/.config}/atomic-dev/secrets.env" ] && . "${XDG_CONFIG_HOME:-$HOME/.config}/atomic-dev/secrets.env"
+
 # Optional: interactive SSH logins land in the IDE (install.sh --auto-attach DIR)
 _atomic_env="${XDG_CONFIG_HOME:-$HOME/.config}/atomic-dev/env"
 # shellcheck disable=SC1090

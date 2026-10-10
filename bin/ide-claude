@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Claude tab (layouts/ide.kdl). The first launch resumes this project's last conversation
+# if there is one; after that, exiting Claude starts a fresh one instead of a dead pane.
+if ! command -v claude >/dev/null 2>&1; then
+  echo "Claude Code isn't installed (install.sh --no-claude?)."
+  while :; do sleep 3600; done
+fi
+started=$(date +%s)
+claude --continue || {
+  # --continue fails straight away when there is no conversation to resume
+  [ $(( $(date +%s) - started )) -lt 3 ] && claude
+}
+while :; do
+  started=$(date +%s)
+  claude || true
+  if [ $(( $(date +%s) - started )) -lt 2 ]; then sleep 2; fi
+done

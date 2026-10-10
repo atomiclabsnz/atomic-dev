@@ -24,10 +24,11 @@ keybinds {
         bind "Alt 1" { GoToTab 1; }
         bind "Alt 2" { GoToTab 2; }
         bind "Alt 3" { GoToTab 3; }
+        bind "Alt 4" { GoToTab 4; }
         bind "Alt f" { ToggleFloatingPanes; }
         bind "Alt z" { ToggleFocusFullscreen; }
         bind "Alt t" { NewPane "Down"; }
-        bind "Alt g" { GoToTab 2; }
+        bind "Alt g" { GoToTab 3; }
         bind "Alt /" { Run "ide-help" { floating true; close_on_exit true; }; }
         // Detach leaves the session running (re-attach with `ide`); Quit kills it
         bind "Alt d" "Alt q" { Detach; }
@@ -45,10 +46,12 @@ keybinds {
         bind "1" { GoToTab 1; SwitchToMode "Locked"; }
         bind "2" { GoToTab 2; SwitchToMode "Locked"; }
         bind "3" { GoToTab 3; SwitchToMode "Locked"; }
+        bind "4" { GoToTab 4; SwitchToMode "Locked"; }
+        bind "c" { GoToTab 2; SwitchToMode "Locked"; }
         bind "f" { ToggleFloatingPanes; SwitchToMode "Locked"; }
         bind "z" { ToggleFocusFullscreen; SwitchToMode "Locked"; }
         bind "t" { NewPane "Down"; SwitchToMode "Locked"; }
-        bind "g" { GoToTab 2; SwitchToMode "Locked"; }
+        bind "g" { GoToTab 3; SwitchToMode "Locked"; }
         bind "/" "?" { Run "ide-help" { floating true; close_on_exit true; }; SwitchToMode "Locked"; }
         bind "d" { Detach; }
         bind "q" { Quit; }
