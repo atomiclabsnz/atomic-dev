@@ -11,8 +11,8 @@ fd = "10.5.0"
 fzf = "0.74.4"
 gh = "2.102.0"
 # Python
-uv = "0.12.24"
-ruff = "0.16.10"
+uv = "0.13.0"
+ruff = "0.17.0"
 # Node / TypeScript (Node LTS line)
 node = "24.21.0"
 # Language servers referenced by helix/languages.toml and Helix's defaults
@@ -20,8 +20,8 @@ taplo = "0.10.0"
 marksman = "2026-02-08"
 "npm:basedpyright" = "1.40.2"
 "npm:typescript" = "7.0.2"
-"npm:typescript-language-server" = "6.0.1"
-"npm:yaml-language-server" = "1.24.0"
+"npm:typescript-language-server" = "6.0.2"
+"npm:yaml-language-server" = "1.25.0"
 # Dev containers (bin/ide-devcontainer)
 "npm:@devcontainers/cli" = "0.89.0"
 
